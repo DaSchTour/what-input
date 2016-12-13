@@ -18,7 +18,7 @@ var runSequence   = require('run-sequence');
 var uglify        = require('gulp-uglify');
 var typescript    = require('gulp-typescript');
 var tsconfig      = require('./tsconfig.json');
-
+var systemjsBuilder = require('gulp-systemjs-builder');
 
 /*
   --------------------
@@ -38,16 +38,24 @@ gulp.task('clean', function () {
 */
 
 gulp.task('scripts:main', function() {
-  return gulp.src(['./src/what-input.js'])
+  return gulp.src(['./src/what-input.ts'])
     .pipe(typescript(tsconfig.compilerOptions))
-    .pipe(header(banner, { pkg : pkg } ))
-    .pipe(gulp.dest('./dist/'))
+    .pipe(gulp.dest('./src/'));
+});
+
+gulp.task('dist', ['scripts:main'], function() {
+  var builder = systemjsBuilder();
+  builder.buildStatic('src/what-input.js', 'what-input.js', {
+    minify: false,
+    mangle: false
+  }).pipe(header(banner, { pkg : pkg } ))
+    .pipe(gulp.dest('./dist'))
     .pipe(uglify())
     .pipe(rename({
       suffix: '.min'
     }))
     .pipe(header(banner, { pkg : pkg } ))
-    .pipe(gulp.dest('./dist/'))
+    .pipe(gulp.dest('./dist'))
     .pipe(notify('Build complete'));
 });
 

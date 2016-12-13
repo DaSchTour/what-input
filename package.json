@@ -3,7 +3,7 @@
   "version": "5.0.0",
   "description": "A global utility for tracking the current input method (mouse, keyboard or touch).",
   "main": "dist/what-input.js",
-  "typings": "dist/what-input.d.ts",
+  "typings": "src/what-input.d.ts",
   "repository": {
     "url": "https://github.com/DaSchTour/what-input.git",
     "type": "git"
@@ -38,6 +38,7 @@
     "gulp-notify": "2.2.0",
     "gulp-plumber": "1.1.0",
     "gulp-rename": "1.2.2",
+    "gulp-systemjs-builder": "^0.15.0",
     "gulp-typescript": "^3.1.3",
     "gulp-uglify": "^2.0.0",
     "run-sequence": "1.1.5",
