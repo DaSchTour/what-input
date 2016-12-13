@@ -1,4 +1,7 @@
-module.exports = (function() {
+type whatInputTypes = "mouse" | "keyboard" | "touch" | "initial";
+type whatInputAskParam = "loose" | "strict";
+
+const whatInput = function() {
 
   /*
     ---------------
@@ -7,16 +10,16 @@ module.exports = (function() {
   */
 
   // cache document.documentElement
-  var docElem = document.documentElement;
+  const docElem = document.documentElement;
 
   // last used input type
-  var currentInput = 'initial';
+  let currentInput: whatInputTypes = 'initial';
 
   // last used input intent
-  var currentIntent = null;
+  let currentIntent: whatInputTypes = null;
 
   // form input types
-  var formInputs = [
+  const formInputs = [
     'input',
     'select',
     'textarea'
@@ -24,7 +27,7 @@ module.exports = (function() {
 
   // list of modifier keys commonly used with the mouse and
   // can be safely ignored to prevent false keyboard detection
-  var ignoreMap = [
+  const ignoreMap = [
     16, // shift
     17, // control
     18, // alt
@@ -33,7 +36,7 @@ module.exports = (function() {
   ];
 
   // mapping of events to input types
-  var inputMap = {
+  const inputMap = {
     'keyup': 'keyboard',
     'mousedown': 'mouse',
     'mousemove': 'mouse',
@@ -45,20 +48,20 @@ module.exports = (function() {
   };
 
   // array of all used input types
-  var inputTypes = [];
+  const inputTypes: Array<whatInputTypes> = [];
 
   // boolean: true if touch buffer timer is running
-  var isBuffering = false;
+  let isBuffering = false;
 
   // map of IE 10 pointer events
-  var pointerMap = {
+  let pointerMap = {
     2: 'touch',
     3: 'touch', // treat pen like touch
     4: 'mouse'
   };
 
   // touch buffer timer
-  var touchTimer = null;
+  let touchTimer = null;
 
 
   /*
@@ -67,7 +70,7 @@ module.exports = (function() {
     ---------------
   */
 
-  var setUp = function() {
+  const setUp = function() {
 
     // add correct mouse wheel event mapping to `inputMap`
     inputMap[detectWheel()] = 'mouse';
@@ -83,17 +86,17 @@ module.exports = (function() {
     ---------------
   */
 
-  var addListeners = function() {
+  const addListeners = function() {
 
     // `pointermove`, `MSPointerMove`, `mousemove` and mouse wheel event binding
     // can only demonstrate potential, but not actual, interaction
     // and are treated separately
 
     // pointer events (mouse, pen, touch)
-    if (window.PointerEvent) {
+    if (window["PointerEvent"]) {
       docElem.addEventListener('pointerdown', updateInput);
       docElem.addEventListener('pointermove', setIntent);
-    } else if (window.MSPointerEvent) {
+    } else if (window["MSPointerEvent"]) {
       docElem.addEventListener('MSPointerDown', updateInput);
       docElem.addEventListener('MSPointerMove', setIntent);
     } else {
@@ -117,12 +120,12 @@ module.exports = (function() {
   };
 
   // checks conditions before updating new input
-  var updateInput = function(event) {
+  const updateInput = function(event) {
 
     // only execute if the touch buffer timer isn't running
     if (!isBuffering) {
-      var eventKey = event.which;
-      var value = inputMap[event.type];
+      let eventKey = event.which;
+      let value = inputMap[event.type];
       if (value === 'pointer') value = pointerType(event);
 
       if (
@@ -130,7 +133,7 @@ module.exports = (function() {
         currentIntent !== value
       ) {
 
-        var activeInput = (
+        const activeInput = (
           document.activeElement &&
           formInputs.indexOf(document.activeElement.nodeName.toLowerCase()) === -1
         ) ? true : false;
@@ -155,7 +158,7 @@ module.exports = (function() {
   };
 
   // updates the doc and `inputTypes` array with new input
-  var setInput = function() {
+  const setInput = function() {
     docElem.setAttribute('data-whatinput', currentInput);
     docElem.setAttribute('data-whatintent', currentInput);
 
@@ -166,11 +169,11 @@ module.exports = (function() {
   };
 
   // updates input intent for `mousemove` and `pointermove`
-  var setIntent = function(event) {
+  const setIntent = function(event) {
 
     // only execute if the touch buffer timer isn't running
     if (!isBuffering) {
-      var value = inputMap[event.type];
+      let value = inputMap[event.type];
       if (value === 'pointer') value = pointerType(event);
 
       if (currentIntent !== value) {
@@ -182,7 +185,7 @@ module.exports = (function() {
   };
 
   // buffers touch events because they frequently also fire mouse events
-  var touchBuffer = function(event) {
+  const touchBuffer = function(event) {
 
     // clear the timer if it happens to be running
     window.clearTimeout(touchTimer);
@@ -208,7 +211,7 @@ module.exports = (function() {
     ---------------
   */
 
-  var pointerType = function(event) {
+  const pointerType = function(event) {
    if (typeof event.pointerType === 'number') {
       return pointerMap[event.pointerType];
    } else {
@@ -218,7 +221,7 @@ module.exports = (function() {
 
   // detect version of mouse wheel event to use
   // via https://developer.mozilla.org/en-US/docs/Web/Events/wheel
-  var detectWheel = function() {
+  const detectWheel = function() {
     return 'onwheel' in document.createElement('div') ?
       'wheel' : // Modern browsers support "wheel"
 
@@ -237,13 +240,9 @@ module.exports = (function() {
     ---------------
   */
 
-  if (
-    'addEventListener' in window &&
-    Array.prototype.indexOf
-  ) {
+  if ('addEventListener' in window && Array.prototype.indexOf) {
     setUp();
   }
-
 
   /*
     ---------------
@@ -257,11 +256,11 @@ module.exports = (function() {
     // opt: 'loose'|'strict'
     // 'strict' (default): returns the same value as the `data-whatinput` attribute
     // 'loose': includes `data-whatintent` value if it's more current than `data-whatinput`
-    ask: function(opt) { return (opt === 'loose') ? currentIntent : currentInput; },
+    ask(opt: whatInputAskParam = "strict") { return (opt === 'loose') ? currentIntent : currentInput; },
 
     // returns array: all the detected input types
-    types: function() { return inputTypes; }
+    types() { return inputTypes; }
 
   };
 
-}());
+}();

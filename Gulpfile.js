@@ -16,7 +16,8 @@ var plumber       = require('gulp-plumber');
 var rename        = require('gulp-rename');
 var runSequence   = require('run-sequence');
 var uglify        = require('gulp-uglify');
-var webpack       = require('webpack-stream');
+var typescript    = require('gulp-typescript');
+var tsconfig      = require('./tsconfig.json');
 
 
 /*
@@ -38,15 +39,7 @@ gulp.task('clean', function () {
 
 gulp.task('scripts:main', function() {
   return gulp.src(['./src/what-input.js'])
-    .pipe(webpack({
-      output: {
-        chunkFilename: '[name].js',
-        library: 'whatInput',
-        libraryTarget: 'umd',
-        umdNamedDefine: true
-      }
-    }))
-    .pipe(rename('what-input.js'))
+    .pipe(typescript(tsconfig.compilerOptions))
     .pipe(header(banner, { pkg : pkg } ))
     .pipe(gulp.dest('./dist/'))
     .pipe(uglify())
