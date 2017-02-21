@@ -132,10 +132,11 @@ const whatInput = function() {
         currentInput !== value ||
         currentIntent !== value
       ) {
-
+        const activeElem = document.activeElement;
         const activeInput = (
-          document.activeElement &&
-          formInputs.indexOf(document.activeElement.nodeName.toLowerCase()) === -1
+          activeElem &&
+          activeElem.nodeName &&
+          formInputs.indexOf(activeElem.nodeName.toLowerCase()) === -1
         ) ? true : false;
 
         if (

@@ -1,6 +1,6 @@
 /**
  * what-input - A global utility for tracking the current input method (mouse, keyboard or touch).
- * @version v5.0.0
+ * @version v5.0.1
  * @link https://github.com/DaSchTour/what-input
  * @license MIT
  */
@@ -105,7 +105,8 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                     var value = inputMap[event.type];
                     if (value === 'pointer') value = pointerType(event);
                     if (currentInput !== value || currentIntent !== value) {
-                        var activeInput = document.activeElement && formInputs.indexOf(document.activeElement.nodeName.toLowerCase()) === -1 ? true : false;
+                        var activeElem = document.activeElement;
+                        var activeInput = activeElem && activeElem.nodeName && formInputs.indexOf(activeElem.nodeName.toLowerCase()) === -1 ? true : false;
                         if (value === 'touch' ||
                         // ignore mouse modifier keys
                         value === 'mouse' && ignoreMap.indexOf(eventKey) === -1 ||

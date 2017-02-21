@@ -102,8 +102,10 @@ var whatInput = function () {
                 value = pointerType(event);
             if (currentInput !== value ||
                 currentIntent !== value) {
-                var activeInput = (document.activeElement &&
-                    formInputs.indexOf(document.activeElement.nodeName.toLowerCase()) === -1) ? true : false;
+                var activeElem = document.activeElement;
+                var activeInput = (activeElem &&
+                    activeElem.nodeName &&
+                    formInputs.indexOf(activeElem.nodeName.toLowerCase()) === -1) ? true : false;
                 if (value === 'touch' ||
                     // ignore mouse modifier keys
                     (value === 'mouse' && ignoreMap.indexOf(eventKey) === -1) ||
