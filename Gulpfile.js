@@ -47,7 +47,10 @@ gulp.task('dist', ['scripts:main'], function() {
   var builder = systemjsBuilder();
   builder.buildStatic('src/what-input.js', 'what-input.js', {
     minify: false,
-    mangle: false
+    mangle: false,
+    globalDeps: {
+      'rxjs': 'Rx'
+    }
   }).pipe(header(banner, { pkg : pkg } ))
     .pipe(gulp.dest('./dist'))
     .pipe(uglify())
@@ -59,18 +62,7 @@ gulp.task('dist', ['scripts:main'], function() {
     .pipe(notify('Build complete'));
 });
 
-gulp.task('scripts:ie8', function() {
-  return gulp.src(['./src/polyfills/ie8/*.js'])
-    .pipe(plumber({
-      errorHandler: notify.onError("Error: <%= error.message %>")
-    }))
-    .pipe(concat('lte-IE8.js'))
-    .pipe(uglify())
-    .pipe(gulp.dest('./dist/'))
-    .pipe(notify('IE8 scripts task complete'));
-});
-
-gulp.task('scripts', ['scripts:main', 'scripts:ie8']);
+gulp.task('scripts', ['scripts:main']);
 
 
 /*
@@ -93,12 +85,11 @@ gulp.task('default', function() {
       });
 
       gulp.watch([
-        './src/what-input.js',
-        './polyfills/*.js'
+        './src/what-input.ts'
       ], ['scripts']).on('change', browserSync.reload);
 
       gulp.watch([
-        './*.html',
+        './*.html'
       ]).on('change', browserSync.reload);
     }
   );
