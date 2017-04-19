@@ -50,8 +50,17 @@ const whatInput = function() {
   // array of all used input types
   const inputTypes: Array<whatInputTypes> = [];
 
-  // boolean: true if touch buffer timer is running
+  // boolean: true if touch buffer is active
   let isBuffering = false;
+
+  // boolean: true if the page is being scrolled
+  var isScrolling = false;
+
+  // store current mouse position
+  var mousePos = {
+    'x': null,
+    'y': null
+  };
 
   // map of IE 10 pointer events
   let pointerMap = {
@@ -60,9 +69,6 @@ const whatInput = function() {
     4: 'mouse'
   };
 
-  // touch buffer timer
-  let touchTimer = null;
-
 
   /*
     ---------------
@@ -70,7 +76,7 @@ const whatInput = function() {
     ---------------
   */
 
-  const setUp = function() {
+  const setUp = () => {
 
     // add correct mouse wheel event mapping to `inputMap`
     inputMap[detectWheel()] = 'mouse';
@@ -86,7 +92,7 @@ const whatInput = function() {
     ---------------
   */
 
-  const addListeners = function() {
+  const addListeners = () => {
 
     // `pointermove`, `MSPointerMove`, `mousemove` and mouse wheel event binding
     // can only demonstrate potential, but not actual, interaction
@@ -108,6 +114,7 @@ const whatInput = function() {
       // touch events
       if ('ontouchstart' in window) {
         docElem.addEventListener('touchstart', touchBuffer);
+        docElem.addEventListener('touchend', touchBuffer);
       }
     }
 
@@ -120,7 +127,7 @@ const whatInput = function() {
   };
 
   // checks conditions before updating new input
-  const updateInput = function(event) {
+  const updateInput = (event) => {
 
     // only execute if the touch buffer timer isn't running
     if (!isBuffering) {
@@ -159,7 +166,7 @@ const whatInput = function() {
   };
 
   // updates the doc and `inputTypes` array with new input
-  const setInput = function() {
+  const setInput = () => {
     docElem.setAttribute('data-whatinput', currentInput);
     docElem.setAttribute('data-whatintent', currentInput);
 
@@ -170,10 +177,25 @@ const whatInput = function() {
   };
 
   // updates input intent for `mousemove` and `pointermove`
-  const setIntent = function(event) {
+  const setIntent = (event) => {
+
+    // test to see if `mousemove` happened relative to the screen
+    // to detect scrolling versus mousemove
+    if (
+      mousePos['x'] !== event.screenX ||
+      mousePos['y'] !== event.screenY
+    ) {
+      isScrolling = false;
+
+      mousePos['x'] = event.screenX;
+      mousePos['y'] = event.screenY;
+    } else {
+      isScrolling = true;
+    }
 
     // only execute if the touch buffer timer isn't running
-    if (!isBuffering) {
+    // or scrolling isn't happening
+    if (!isBuffering && !isScrolling) {
       let value = inputMap[event.type];
       if (value === 'pointer') value = pointerType(event);
 
@@ -186,25 +208,13 @@ const whatInput = function() {
   };
 
   // buffers touch events because they frequently also fire mouse events
-  const touchBuffer = function(event) {
+  const touchBuffer = (event) => {
 
-    // clear the timer if it happens to be running
-    window.clearTimeout(touchTimer);
-
-    // set the current input
-    updateInput(event);
-
-    // set the isBuffering to `true`
-    isBuffering = true;
-
-    // run the timer
-    touchTimer = window.setTimeout(function() {
-
-      // if the timer runs out, set isBuffering back to `false`
-      isBuffering = false;
-    }, 200);
+    isBuffering = (event.type === 'touchstart') ? false : true;
+    if (event.type === 'touchstart') {
+      updateInput(event);
+    }
   };
-
 
   /*
     ---------------
@@ -212,7 +222,7 @@ const whatInput = function() {
     ---------------
   */
 
-  const pointerType = function(event) {
+  const pointerType = (event) => {
    if (typeof event.pointerType === 'number') {
       return pointerMap[event.pointerType];
    } else {
@@ -222,7 +232,7 @@ const whatInput = function() {
 
   // detect version of mouse wheel event to use
   // via https://developer.mozilla.org/en-US/docs/Web/Events/wheel
-  const detectWheel = function() {
+  const detectWheel = () => {
     return 'onwheel' in document.createElement('div') ?
       'wheel' : // Modern browsers support "wheel"
 
