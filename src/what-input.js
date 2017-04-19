@@ -38,16 +38,21 @@ var whatInput = function () {
     };
     // array of all used input types
     var inputTypes = [];
-    // boolean: true if touch buffer timer is running
+    // boolean: true if touch buffer is active
     var isBuffering = false;
+    // boolean: true if the page is being scrolled
+    var isScrolling = false;
+    // store current mouse position
+    var mousePos = {
+        'x': null,
+        'y': null
+    };
     // map of IE 10 pointer events
     var pointerMap = {
         2: 'touch',
         3: 'touch',
         4: 'mouse'
     };
-    // touch buffer timer
-    var touchTimer = null;
     /*
       ---------------
       Set up
@@ -84,6 +89,7 @@ var whatInput = function () {
             // touch events
             if ('ontouchstart' in window) {
                 docElem.addEventListener('touchstart', touchBuffer);
+                docElem.addEventListener('touchend', touchBuffer);
             }
         }
         // mouse wheel
@@ -129,8 +135,20 @@ var whatInput = function () {
     };
     // updates input intent for `mousemove` and `pointermove`
     var setIntent = function (event) {
+        // test to see if `mousemove` happened relative to the screen
+        // to detect scrolling versus mousemove
+        if (mousePos['x'] !== event.screenX ||
+            mousePos['y'] !== event.screenY) {
+            isScrolling = false;
+            mousePos['x'] = event.screenX;
+            mousePos['y'] = event.screenY;
+        }
+        else {
+            isScrolling = true;
+        }
         // only execute if the touch buffer timer isn't running
-        if (!isBuffering) {
+        // or scrolling isn't happening
+        if (!isBuffering && !isScrolling) {
             var value = inputMap[event.type];
             if (value === 'pointer')
                 value = pointerType(event);
@@ -142,17 +160,10 @@ var whatInput = function () {
     };
     // buffers touch events because they frequently also fire mouse events
     var touchBuffer = function (event) {
-        // clear the timer if it happens to be running
-        window.clearTimeout(touchTimer);
-        // set the current input
-        updateInput(event);
-        // set the isBuffering to `true`
-        isBuffering = true;
-        // run the timer
-        touchTimer = window.setTimeout(function () {
-            // if the timer runs out, set isBuffering back to `false`
-            isBuffering = false;
-        }, 200);
+        isBuffering = (event.type === 'touchstart') ? false : true;
+        if (event.type === 'touchstart') {
+            updateInput(event);
+        }
     };
     /*
       ---------------
