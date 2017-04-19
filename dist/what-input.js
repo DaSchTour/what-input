@@ -1,6 +1,6 @@
 /**
  * what-input - A global utility for tracking the current input method (mouse, keyboard or touch).
- * @version v5.0.1
+ * @version v5.1.1
  * @link https://github.com/DaSchTour/what-input
  * @license MIT
  */
@@ -45,16 +45,21 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
             };
             // array of all used input types
             var inputTypes = [];
-            // boolean: true if touch buffer timer is running
+            // boolean: true if touch buffer is active
             var isBuffering = false;
+            // boolean: true if the page is being scrolled
+            var isScrolling = false;
+            // store current mouse position
+            var mousePos = {
+                'x': null,
+                'y': null
+            };
             // map of IE 10 pointer events
             var pointerMap = {
                 2: 'touch',
                 3: 'touch',
                 4: 'mouse'
             };
-            // touch buffer timer
-            var touchTimer = null;
             /*
               ---------------
               Set up
@@ -89,6 +94,7 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                     // touch events
                     if ('ontouchstart' in window) {
                         docElem.addEventListener('touchstart', touchBuffer);
+                        docElem.addEventListener('touchend', touchBuffer);
                     }
                 }
                 // mouse wheel
@@ -130,8 +136,18 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
             };
             // updates input intent for `mousemove` and `pointermove`
             var setIntent = function (event) {
+                // test to see if `mousemove` happened relative to the screen
+                // to detect scrolling versus mousemove
+                if (mousePos['x'] !== event.screenX || mousePos['y'] !== event.screenY) {
+                    isScrolling = false;
+                    mousePos['x'] = event.screenX;
+                    mousePos['y'] = event.screenY;
+                } else {
+                    isScrolling = true;
+                }
                 // only execute if the touch buffer timer isn't running
-                if (!isBuffering) {
+                // or scrolling isn't happening
+                if (!isBuffering && !isScrolling) {
                     var value = inputMap[event.type];
                     if (value === 'pointer') value = pointerType(event);
                     if (currentIntent !== value) {
@@ -142,17 +158,10 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
             };
             // buffers touch events because they frequently also fire mouse events
             var touchBuffer = function (event) {
-                // clear the timer if it happens to be running
-                window.clearTimeout(touchTimer);
-                // set the current input
-                updateInput(event);
-                // set the isBuffering to `true`
-                isBuffering = true;
-                // run the timer
-                touchTimer = window.setTimeout(function () {
-                    // if the timer runs out, set isBuffering back to `false`
-                    isBuffering = false;
-                }, 200);
+                isBuffering = event.type === 'touchstart' ? false : true;
+                if (event.type === 'touchstart') {
+                    updateInput(event);
+                }
             };
             /*
               ---------------
