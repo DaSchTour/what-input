@@ -90,6 +90,7 @@ var whatInput = function () {
         // `pointermove`, `MSPointerMove`, `mousemove` and mouse wheel event binding
         // can only demonstrate potential, but not actual, interaction
         // and are treated separately
+        var options = supportsPassive ? { passive: true } : false; // Type Definition isn't up to spec so we set this to any
         // pointer events (mouse, pen, touch)
         if (window["PointerEvent"]) {
             docElem.addEventListener('pointerdown', updateInput);
@@ -105,13 +106,12 @@ var whatInput = function () {
             docElem.addEventListener('mousemove', setIntent);
             // touch events
             if ('ontouchstart' in window) {
-                docElem.addEventListener('touchstart', touchBuffer);
+                docElem.addEventListener('touchstart', touchBuffer, options);
                 docElem.addEventListener('touchend', touchBuffer);
             }
         }
         // mouse wheel
-        docElem.addEventListener(detectWheel(), setIntent, supportsPassive ? { passive: true } : false // Type Definition isn't up to spec
-        );
+        docElem.addEventListener(detectWheel(), setIntent, options);
         // keyboard events
         docElem.addEventListener('keydown', updateInput);
         docElem.addEventListener('keyup', updateInput);

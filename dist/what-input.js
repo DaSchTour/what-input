@@ -1,6 +1,6 @@
 /**
  * what-input - A global utility for tracking the current input method (mouse, keyboard or touch).
- * @version v5.1.1
+ * @version v5.2.0
  * @link https://github.com/DaSchTour/what-input
  * @license MIT
  */
@@ -20,20 +20,26 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
               Variables
               ---------------
             */
-            // cache document.documentElement
-            var docElem = document.documentElement;
+            var _this = this;
             // last used input type
             var currentInput = 'initial';
             // last used input intent
             var currentIntent = null;
+            // cache document.documentElement
+            var docElem = document.documentElement;
             // form input types
             var formInputs = ['input', 'select', 'textarea'];
+            var functionList = [];
             // list of modifier keys commonly used with the mouse and
             // can be safely ignored to prevent false keyboard detection
             var ignoreMap = [16, 17, 18, 91, 93 // Windows menu / right Apple cmd
             ];
+            // list of keys for which we change intent even for form inputs
+            var changeIntentMap = [9 // tab
+            ];
             // mapping of events to input types
             var inputMap = {
+                'keydown': 'keyboard',
                 'keyup': 'keyboard',
                 'mousedown': 'mouse',
                 'mousemove': 'mouse',
@@ -60,6 +66,15 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                 3: 'touch',
                 4: 'mouse'
             };
+            var supportsPassive = false;
+            try {
+                var opts = Object.defineProperty({}, 'passive', {
+                    get: function () {
+                        supportsPassive = true;
+                    }
+                });
+                window.addEventListener('test', null, opts);
+            } catch (e) {}
             /*
               ---------------
               Set up
@@ -80,6 +95,7 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                 // `pointermove`, `MSPointerMove`, `mousemove` and mouse wheel event binding
                 // can only demonstrate potential, but not actual, interaction
                 // and are treated separately
+                var options = supportsPassive ? { passive: true } : false; // Type Definition isn't up to spec so we set this to any
                 // pointer events (mouse, pen, touch)
                 if (window["PointerEvent"]) {
                     docElem.addEventListener('pointerdown', updateInput);
@@ -93,12 +109,12 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                     docElem.addEventListener('mousemove', setIntent);
                     // touch events
                     if ('ontouchstart' in window) {
-                        docElem.addEventListener('touchstart', touchBuffer);
+                        docElem.addEventListener('touchstart', touchBuffer, options);
                         docElem.addEventListener('touchend', touchBuffer);
                     }
                 }
                 // mouse wheel
-                docElem.addEventListener(detectWheel(), setIntent);
+                docElem.addEventListener(detectWheel(), setIntent, options);
                 // keyboard events
                 docElem.addEventListener('keydown', updateInput);
                 docElem.addEventListener('keyup', updateInput);
@@ -109,15 +125,21 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                 if (!isBuffering) {
                     var eventKey = event.which;
                     var value = inputMap[event.type];
-                    if (value === 'pointer') value = pointerType(event);
+                    if (value === 'pointer') {
+                        value = pointerType(event);
+                    }
                     if (currentInput !== value || currentIntent !== value) {
                         var activeElem = document.activeElement;
-                        var activeInput = activeElem && activeElem.nodeName && formInputs.indexOf(activeElem.nodeName.toLowerCase()) === -1 ? true : false;
+                        var activeInput = false;
+                        var notFormInput = activeElem && activeElem.nodeName && formInputs.indexOf(activeElem.nodeName.toLowerCase()) === -1;
+                        if (notFormInput || changeIntentMap.indexOf(eventKey) !== -1) {
+                            activeInput = true;
+                        }
                         if (value === 'touch' ||
                         // ignore mouse modifier keys
-                        value === 'mouse' && ignoreMap.indexOf(eventKey) === -1 ||
+                        value === 'mouse' ||
                         // don't switch if the current element is a form input
-                        value === 'keyboard' && activeInput) {
+                        value === 'keyboard' && eventKey && activeInput && ignoreMap.indexOf(eventKey) === -1) {
                             // set the current and catch-all variable
                             currentInput = currentIntent = value;
                             setInput();
@@ -133,6 +155,7 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                     inputTypes.push(currentInput);
                     docElem.className += ' whatinput-types-' + currentInput;
                 }
+                fireFunctions('input');
             };
             // updates input intent for `mousemove` and `pointermove`
             var setIntent = function (event) {
@@ -153,14 +176,25 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                     if (currentIntent !== value) {
                         currentIntent = value;
                         docElem.setAttribute('data-whatintent', currentIntent);
+                        fireFunctions('intent');
                     }
                 }
             };
             // buffers touch events because they frequently also fire mouse events
             var touchBuffer = function (event) {
-                isBuffering = event.type === 'touchstart' ? false : true;
                 if (event.type === 'touchstart') {
+                    isBuffering = false;
+                    // set the current input
                     updateInput(event);
+                } else {
+                    isBuffering = true;
+                }
+            };
+            var fireFunctions = function (type) {
+                for (var i = 0, len = functionList.length; i < len; i++) {
+                    if (functionList[i].type === type) {
+                        functionList[i].fn.call(_this, currentIntent);
+                    }
                 }
             };
             /*
@@ -178,7 +212,23 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
             // detect version of mouse wheel event to use
             // via https://developer.mozilla.org/en-US/docs/Web/Events/wheel
             var detectWheel = function () {
-                return 'onwheel' in document.createElement('div') ? 'wheel' : document.onmousewheel !== undefined ? 'mousewheel' : 'DOMMouseScroll'; // let's assume that remaining browsers are older Firefox
+                var wheelType;
+                // Modern browsers support "wheel"
+                if ('onwheel' in document.createElement('div')) {
+                    wheelType = 'wheel';
+                } else {
+                    // Webkit and IE support at least "mousewheel"
+                    // or assume that remaining browsers are older Firefox
+                    wheelType = document.onmousewheel !== undefined ? 'mousewheel' : 'DOMMouseScroll';
+                }
+                return wheelType;
+            };
+            var objPos = function (match) {
+                for (var i = 0, len = functionList.length; i < len; i++) {
+                    if (functionList[i].fn === match) {
+                        return i;
+                    }
+                }
             };
             /*
               ---------------
@@ -209,6 +259,25 @@ $__System.registerDynamic('1', [], false, function ($__require, $__exports, $__m
                 // returns array: all the detected input types
                 types: function () {
                     return inputTypes;
+                },
+                // overwrites ignored keys with provided array
+                ignoreKeys: function (arr) {
+                    ignoreMap = arr;
+                },
+                // attach functions to input and intent "events"
+                // funct: function to fire on change
+                // eventType: 'input'|'intent'
+                registerOnChange: function (fn, eventType) {
+                    functionList.push({
+                        fn: fn,
+                        type: eventType || 'input'
+                    });
+                },
+                unRegisterOnChange: function (fn) {
+                    var position = objPos(fn);
+                    if (position) {
+                        functionList.splice(position, 1);
+                    }
                 }
             };
         }();
